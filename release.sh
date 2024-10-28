@@ -5,7 +5,7 @@ set -o pipefail
 
 # Variables globales
 CURRENT_DIR=$(pwd)
-DORA_REPOSITORY=git@github.com:gip-inclusion/dora.git
+DORA_REPOSITORY=git@github.com:jbuget/dora.git
 
 # Couleurs ANSI
 RED='\033[0;31m'
@@ -62,7 +62,7 @@ if ! command -v scalingo &> /dev/null; then
 fi
 
 # Vérification de l'accès aux applications Scalingo
-echo "${CYAN}🔍 Vérification des permissions Scalingo...${NC}"
+echo -e "${CYAN}🔍 Vérification des permissions Scalingo...${NC}"
 APPS_LIST=$(scalingo apps --region "$SCALINGO_REGION")
 
 check_app_access() {
@@ -126,46 +126,46 @@ deploy_repo() {
 
   echo "Récupération des branches distantes pour $repo_name..."
   git fetch --all
+  git checkout main
 
-  # Vérifier s'il y a des commits d'écart entre 'main' et le dépôt distant
-  COMMITS_DIFF=$(git rev-list --count main..origin/main)
-
-  if [ "$COMMITS_DIFF" -gt 0 ]; then
-    echo "Il y a $COMMITS_DIFF commit(s) à déployer pour $repo_name."
-
-    # Génération du tag basé sur le fichier 'version'
-    if [ -f "$CURRENT_DIR/version" ]; then
-      CURRENT_VERSION=$(cat "$CURRENT_DIR/version" | tr -d '[:space:]')
-      VERSION=$(increment_version "$CURRENT_VERSION" "$RELEASE_TYPE")
-      echo "$VERSION" > "$CURRENT_DIR/version"
-      echo "📌 Nouvelle version : $VERSION (basée sur le type $RELEASE_TYPE)"
-      
-      # Ajouter et commiter la nouvelle version du fichier 'version'
-      git add "$CURRENT_DIR/version"
-      git commit -m "MEP $(date +'%d.%m.%Y') : Mise à jour de la version à $VERSION"
-      git push origin main
-
-      # Créer et pousser le nouveau tag
-      git tag "$VERSION"
-      git push origin "$VERSION"
-    else
-      echo -e "${RED}⚠️ Fichier version introuvable. Impossible de créer le tag.${NC}"
-      exit 1
-    fi
+  # Lire la version actuelle à partir du fichier 'version'
+  if [ -f "$CURRENT_DIR/version" ]; then
+    CURRENT_VERSION=$(cat "$CURRENT_DIR/version" | tr -d '[:space:]')
   else
-    echo -e "${YELLOW}🙅 Pas de commits à déployer pour $repo_name. Aucun tag ou déploiement effectué.${NC}"
+    echo -e "${RED}⚠️ Fichier version introuvable. Impossible de vérifier la version actuelle.${NC}"
+    exit 1
   fi
 
-  # Déploiement de l'archive sur Scalingo
-  if [ -n "$VERSION" ]; then
+  # Vérifier si le tag de la version actuelle existe déjà sur le dernier commit de main
+  LATEST_COMMIT_HASH=$(git rev-parse main)
+  TAG_COMMIT_HASH=$(git rev-list -n 1 "$CURRENT_VERSION" 2>/dev/null || echo "")
+
+  if [ "$LATEST_COMMIT_HASH" == "$TAG_COMMIT_HASH" ]; then
+    echo -e "${YELLOW}🙅 La version '$CURRENT_VERSION' est déjà déployée pour le dernier commit de main. Aucun nouveau déploiement nécessaire.${NC}"
+  else
+    echo "Il y a des modifications non déployées dans la branche 'main'. Création d'une nouvelle version..."
+
+    # Incrémenter la version et mettre à jour le fichier dans le dépôt temporaire
+    NEW_VERSION=$(increment_version "$CURRENT_VERSION" "$RELEASE_TYPE")
+    echo "$NEW_VERSION" > version
+    echo "📌 Nouvelle version : $NEW_VERSION (basée sur type $RELEASE_TYPE)"
+      
+    # Ajouter et commiter la nouvelle version du fichier 'version' dans le dépôt temporaire
+    git add version
+    git commit -m "MEP $(date +'%d.%m.%Y') : Mise à jour de la version à $NEW_VERSION"
+    git push origin main
+
+    # Créer et pousser le nouveau tag
+    git tag "$NEW_VERSION"
+    git push origin "$NEW_VERSION"
+
+    # Déploiement de l'archive sur Scalingo
     echo "🚀 Déploiement de l'archive sur Scalingo pour les applications dora-back et dora-front"
-    tag_archive_url="https://github.com/jbuget/dora/archive/refs/tags/$VERSION.tar.gz"
+    tag_archive_url="https://github.com/jbuget/dora/archive/refs/tags/$NEW_VERSION.tar.gz"
     echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_BACK_APP $tag_archive_url"
     echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_FRONT_APP $tag_archive_url"
     #scalingo deploy --region "$SCALINGO_REGION" --app "$SCALINGO_BACK_APP" "$tag_archive_url"
     #scalingo deploy --region "$SCALINGO_REGION" --app "$SCALINGO_FRONT_APP" "$tag_archive_url"
-  else
-    echo -e "${RED}⚠️ Version non définie. Déploiement Scalingo annulé.${NC}"
   fi
 
   # Revenir au répertoire temporaire
