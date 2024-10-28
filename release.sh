@@ -62,7 +62,7 @@ if ! command -v scalingo &> /dev/null; then
 fi
 
 # Vérification de l'accès aux applications Scalingo
-echo "🔍 Vérification des permissions Scalingo..."
+echo "${CYAN}🔍 Vérification des permissions Scalingo...${NC}"
 APPS_LIST=$(scalingo apps --region "$SCALINGO_REGION")
 
 check_app_access() {
