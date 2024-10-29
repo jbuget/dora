@@ -134,11 +134,12 @@ echo ""
 
 # Déploiement
 
-echo -e "Clonage du dépôt $DORA_REPOSITORY_NAME..."
+echo -e "🐑 Clonage du dépôt $DORA_REPOSITORY_NAME..."
 echo ""
 git clone "$DORA_REPOSITORY_URL"
 cd "$DORA_REPOSITORY_NAME"
 
+echo ""
 echo -e "🚰 Récupération des tags existants"
 echo ""
 git fetch --all
@@ -168,6 +169,7 @@ else
   git tag "$NEW_VERSION"
   git push origin "$NEW_VERSION"
 
+  echo ""
   echo -e "${CYAN}🚀 Déploiement de l'archive sur Scalingo pour les applications dora-back et dora-front${NC}"
   echo ""
   tag_archive_url="https://github.com/gip-inclusion/dora/archive/refs/tags/$NEW_VERSION.tar.gz"
