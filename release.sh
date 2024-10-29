@@ -162,7 +162,7 @@ else
 
   # Incrémenter la version et définir le nouveau tag
   NEW_VERSION=$(get_next_version "$CURRENT_VERSION" "$RELEASE_TYPE")
-  echo "📌 Création de la version $NEW_VERSION (basée sur le type $RELEASE_TYPE)"
+  echo "${CYAN}📌 Création du tag $NEW_VERSION (basée sur le type $RELEASE_TYPE)${NC}"
   git tag "$NEW_VERSION"
   git push origin "$NEW_VERSION"
   echo ""
@@ -170,8 +170,8 @@ else
   # Déploiement de l'archive sur Scalingo
   echo -e "${CYAN}🚀 Déploiement de l'archive sur Scalingo pour les applications dora-back et dora-front${NC}"
   tag_archive_url="https://github.com/gip-inclusion/dora/archive/refs/tags/$NEW_VERSION.tar.gz"
-  echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_BACK_APP $tag_archive_url"
-  echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_FRONT_APP $tag_archive_url"
+  echo "scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_BACK_APP $tag_archive_url"
+  echo "scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_FRONT_APP $tag_archive_url"
   #scalingo deploy --region "$SCALINGO_REGION" --app "$SCALINGO_BACK_APP" "$tag_archive_url"
   #scalingo deploy --region "$SCALINGO_REGION" --app "$SCALINGO_FRONT_APP" "$tag_archive_url"
 fi
