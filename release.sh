@@ -42,7 +42,7 @@ fi
 # ---
 
 # Fonction pour vérifier l'existence d'une variable d'environnement
-check_env_var_is_set() {
+check_env_var() {
   local var_name=$1
   if [ -z "${!var_name}" ]; then
     echo -e "${RED}⚠️  La variable d'environnement $var_name doit être définie.${NC}"
@@ -51,9 +51,9 @@ check_env_var_is_set() {
 }
 
 # Vérification des variables d'environnement requises
-check_env_var_is_set "SCALINGO_REGION"
-check_env_var_is_set "SCALINGO_BACK_APP"
-check_env_var_is_set "SCALINGO_FRONT_APP"
+check_env_var "SCALINGO_REGION"
+check_env_var "SCALINGO_BACK_APP"
+check_env_var "SCALINGO_FRONT_APP"
 
 # Vérification que le CLI Scalingo est installé
 if ! command -v scalingo &> /dev/null; then
@@ -82,7 +82,7 @@ check_app_access "$SCALINGO_FRONT_APP"
 # Utils
 # ---
 
-# Fonction pour incrémenter la version
+# Fonction qui retourne la version incrémentée en fonction de celle passée et du type de release désirée
 increment_version() {
   local version=$1
   local release_type=$2
@@ -128,40 +128,33 @@ deploy_repo() {
   git fetch --all
   git checkout main
 
-  # Lire la version actuelle à partir du fichier 'version'
-  if [ -f "$CURRENT_DIR/version" ]; then
-    CURRENT_VERSION=$(cat "$CURRENT_DIR/version" | tr -d '[:space:]')
-  else
-    echo -e "${RED}⚠️ Fichier version introuvable. Impossible de vérifier la version actuelle.${NC}"
+  # Récupérer le dernier tag pour déterminer la version actuelle
+  CURRENT_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+  if [ -z "$CURRENT_VERSION" ]; then
+    echo -e "${RED}⚠️ Aucun tag de version trouvé. Assurez-vous qu'un tag existe dans le dépôt.${NC}"
     exit 1
   fi
 
   # Vérifier si le tag de la version actuelle existe déjà sur le dernier commit de main
-  LATEST_COMMIT_HASH=$(git rev-parse main)
+  MAIN_COMMIT_HASH=$(git rev-parse main)
   TAG_COMMIT_HASH=$(git rev-list -n 1 "$CURRENT_VERSION" 2>/dev/null || echo "")
 
-  if [ "$LATEST_COMMIT_HASH" == "$TAG_COMMIT_HASH" ]; then
+  if [ "$MAIN_COMMIT_HASH" == "$TAG_COMMIT_HASH" ]; then
     echo -e "${YELLOW}🙅 La version '$CURRENT_VERSION' est déjà déployée pour le dernier commit de main. Aucun nouveau déploiement nécessaire.${NC}"
   else
     echo "Il y a des modifications non déployées dans la branche 'main'. Création d'une nouvelle version..."
 
-    # Incrémenter la version et mettre à jour le fichier dans le dépôt temporaire
+    # Incrémenter la version et définir le nouveau tag
     NEW_VERSION=$(increment_version "$CURRENT_VERSION" "$RELEASE_TYPE")
-    echo "$NEW_VERSION" > version
     echo "📌 Nouvelle version : $NEW_VERSION (basée sur type $RELEASE_TYPE)"
       
-    # Ajouter et commiter la nouvelle version du fichier 'version' dans le dépôt temporaire
-    git add version
-    git commit -m "MEP $(date +'%d.%m.%Y') : Mise à jour de la version à $NEW_VERSION"
-    git push origin main
-
     # Créer et pousser le nouveau tag
     git tag "$NEW_VERSION"
     git push origin "$NEW_VERSION"
 
     # Déploiement de l'archive sur Scalingo
     echo "🚀 Déploiement de l'archive sur Scalingo pour les applications dora-back et dora-front"
-    tag_archive_url="https://github.com/jbuget/dora/archive/refs/tags/$NEW_VERSION.tar.gz"
+    tag_archive_url="https://github.com/gip-inclusion/dora/archive/refs/tags/$NEW_VERSION.tar.gz"
     echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_BACK_APP $tag_archive_url"
     echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_FRONT_APP $tag_archive_url"
     #scalingo deploy --region "$SCALINGO_REGION" --app "$SCALINGO_BACK_APP" "$tag_archive_url"
