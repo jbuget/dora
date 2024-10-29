@@ -28,7 +28,7 @@ echo ""
 # Check param(s)
 # ---
 
-echo -e "Vérification des arguments…"
+echo -e "Vérification des arguments"
 if [ -z "$1" ]; then
   echo -e "${RED}⚠️  Vous devez spécifier le type de release (major, minor, patch).${NC}"
   exit 1
@@ -36,7 +36,7 @@ fi
 
 RELEASE_TYPE=$1
 
-echo -e "Vérification du type de livraison (parmi "major", "minor" ou "patch")…"
+echo -e "Vérification du type de livraison (parmi "major", "minor" ou "patch")"
 if [[ "$RELEASE_TYPE" != "major" && "$RELEASE_TYPE" != "minor" && "$RELEASE_TYPE" != "patch" ]]; then
   echo -e "${RED}⚠️  Type de release invalide : '$RELEASE_TYPE'. Utilisez uniquement 'major', 'minor' ou 'patch'.${NC}"
   exit 1
@@ -54,7 +54,7 @@ check_env_var() {
   fi
 }
 
-echo -e "Vérification des variables d'environnement…"
+echo -e "Vérification des variables d'environnement"
 check_env_var "SCALINGO_REGION"
 check_env_var "SCALINGO_BACK_APP"
 check_env_var "SCALINGO_FRONT_APP"
@@ -63,13 +63,13 @@ check_env_var "SCALINGO_FRONT_APP"
 # Check Scalingo concerns
 # ---
 
-echo -e "Vérification du CLI Scalingo…"
+echo -e "Vérification du CLI Scalingo"
 if ! command -v scalingo &> /dev/null; then
   echo -e "${RED}⚠️  Le CLI Scalingo n'est pas installé. Veuillez l'installer avant d'exécuter ce script.${NC}"
   exit 1
 fi
 
-echo -e "Vérification des accès aux applications Scalingo…"
+echo -e "Vérification des accès aux applications Scalingo"
 APPS_LIST=$(scalingo apps --region "$SCALINGO_REGION")
 
 check_app_access() {
@@ -134,14 +134,14 @@ echo ""
 
 # Déploiement
 
-echo "Clonage du dépôt $DORA_REPOSITORY_NAME..."
+echo -e "Clonage du dépôt $DORA_REPOSITORY_NAME..."
+echo ""
 git clone "$DORA_REPOSITORY_URL"
 cd "$DORA_REPOSITORY_NAME"
-echo ""
 
-echo "🚰 Récupération de tous les objets distants (dont les tags)..."
-git fetch --all
+echo -e "🚰 Récupération des tags existants"
 echo ""
+git fetch --all
 
 # Récupérer le dernier tag pour déterminer la version actuelle
 CURRENT_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
@@ -162,13 +162,14 @@ else
 
   # Incrémenter la version et définir le nouveau tag
   NEW_VERSION=$(get_next_version "$CURRENT_VERSION" "$RELEASE_TYPE")
-  echo "${CYAN}📌 Création du tag $NEW_VERSION (basée sur le type $RELEASE_TYPE)${NC}"
-  git tag "$NEW_VERSION"
-  git push origin "$NEW_VERSION"
+  echo -e "${CYAN}📌 Création du tag $NEW_VERSION (basée sur le type $RELEASE_TYPE)${NC}"
   echo ""
 
-  # Déploiement de l'archive sur Scalingo
+  git tag "$NEW_VERSION"
+  git push origin "$NEW_VERSION"
+
   echo -e "${CYAN}🚀 Déploiement de l'archive sur Scalingo pour les applications dora-back et dora-front${NC}"
+  echo ""
   tag_archive_url="https://github.com/gip-inclusion/dora/archive/refs/tags/$NEW_VERSION.tar.gz"
   echo "scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_BACK_APP $tag_archive_url"
   echo "scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_FRONT_APP $tag_archive_url"
