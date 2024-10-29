@@ -137,9 +137,11 @@ echo ""
 echo "Clonage du dépôt $DORA_REPOSITORY_NAME..."
 git clone "$DORA_REPOSITORY_URL"
 cd "$DORA_REPOSITORY_NAME"
+echo ""
 
 echo "Récupération de tous les objets distants (dont les tags)..."
 git fetch --all
+echo ""
 
 # Récupérer le dernier tag pour déterminer la version actuelle
 CURRENT_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
