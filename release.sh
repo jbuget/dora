@@ -139,7 +139,7 @@ git clone "$DORA_REPOSITORY_URL"
 cd "$DORA_REPOSITORY_NAME"
 echo ""
 
-echo "Récupération de tous les objets distants (dont les tags)..."
+echo "🚰 Récupération de tous les objets distants (dont les tags)..."
 git fetch --all
 echo ""
 
@@ -157,18 +157,18 @@ TAG_COMMIT_HASH=$(git rev-list -n 1 "$CURRENT_VERSION" 2>/dev/null || echo "")
 if [ "$MAIN_COMMIT_HASH" == "$TAG_COMMIT_HASH" ]; then
   echo -e "${YELLOW}🙅 La version '$CURRENT_VERSION' est déjà déployée pour le dernier commit de main. Aucun nouveau déploiement nécessaire.${NC}"
 else
-  echo "Il y a des modifications non déployées dans la branche 'main'. Création d'une nouvelle version..."
+  echo -e "💡 Il y a des modifications non déployées dans la branche 'main'. Création d'une nouvelle version..."
+  echo ""
 
   # Incrémenter la version et définir le nouveau tag
   NEW_VERSION=$(get_next_version "$CURRENT_VERSION" "$RELEASE_TYPE")
-  echo "📌 Nouvelle version : $NEW_VERSION (basée sur type $RELEASE_TYPE)"
-    
-  # Créer et pousser le nouveau tag
+  echo "📌 Création de la version $NEW_VERSION (basée sur le type $RELEASE_TYPE)"
   git tag "$NEW_VERSION"
   git push origin "$NEW_VERSION"
+  echo ""
 
   # Déploiement de l'archive sur Scalingo
-  echo -e "🚀 Déploiement de l'archive sur Scalingo pour les applications dora-back et dora-front"
+  echo -e "${CYAN}🚀 Déploiement de l'archive sur Scalingo pour les applications dora-back et dora-front${NC}"
   tag_archive_url="https://github.com/gip-inclusion/dora/archive/refs/tags/$NEW_VERSION.tar.gz"
   echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_BACK_APP $tag_archive_url"
   echo "[dry-run] scalingo deploy --region $SCALINGO_REGION --app $SCALINGO_FRONT_APP $tag_archive_url"
